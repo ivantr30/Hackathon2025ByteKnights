@@ -1,0 +1,2 @@
+daphne -p 8000 axenixSite.asgi:application
+asdrfsadfsdaf

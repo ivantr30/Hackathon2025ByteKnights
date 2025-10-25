@@ -1,0 +1,60 @@
+html{
+    font-family: 'Courier New', Courier, monospace;
+    height: 100vh;
+    background-color: rgb(44, 1, 85);
+}
+body{
+    background-color: rgb(44, 1, 85);
+    margin: 0%;
+    width: 100%;
+}
+h1{
+    background-color: rgb(44, 1, 85) !important;
+    color: azure !important;
+    text-align: center;
+}
+.content{
+}
+button{
+    color: bisque;
+    font-size: medium;
+    font-weight: 400;
+    background-image: linear-gradient(45deg, rgb(101, 4, 192), rgb(57, 5, 105));
+    border-radius: 20px;
+    border: 0;
+    height: 40px;
+    width:200px;
+    cursor: pointer;
+    margin-bottom: 5px;
+}
+#video-grid{
+    margin-left: 30px;
+    margin-right: 30px;
+}
+.video-container{
+    border-radius: 20px;
+    width: fit-content;
+    height: fit-content;
+    background-color: gray !important;
+}
+.video-container video{
+    border-radius: 20px;
+}
+#video-grid {display: grid;grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));gap: 1rem;}
+.video-container {position: relative;background: #000;}
+.video-container video {width: 100%;}
+.video-container .username-label {position: absolute;bottom: 8px;left: 8px;background: rgba(0,0,0,0.6);color: white;padding: 4px 8px;border-radius: 4px;}
+.video-container .username-label {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+.content-wrapper{
+    height: 100vh;
+    background-color: rgb(44, 1, 85);
+}

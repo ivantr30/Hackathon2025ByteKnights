@@ -1,0 +1,45 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MEGA HACKATON PROJECT</title>
+    <link rel="stylesheet" href="{% static 'css/index.css'%}">
+</head>
+<body>
+    <h1>Крутые конференции</h1>
+    
+    <div class="authenticationButtons">
+        <a href="{% url 'mainMenu:join_page' %}"><button class="Login">Войти в аккаунт</button></a>
+        <a href="{% url 'mainMenu:register_page' %}"><button>Register</button></a>
+    </div>
+    
+
+    <div class="rooms">
+        <div class="JoinRooms">
+            <h2>Доступные комнаты</h2>
+            {% if rooms %}
+                <ul>
+                {% for room in rooms %}
+                    <li>
+                        <a href="{% url 'mainMenu:room_detail' room.slug %}">{{ room.name }}</a> 
+                        (создана {{ room.created_at|date:"d.m.Y" }} пользователем {{ room.creator.username }})
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p>Пока нет ни одной комнаты. Создайте первую!</p>
+            {% endif %}
+        </div>
+        <div class="CreateRoom">
+            <h2>Создать новую комнату</h2>
+            <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Создать и войти</button>
+        </form>
+        </div>
+    </div>
+    
+
+</body>
+</html>

@@ -1,0 +1,57 @@
+{% load static%}
+<!DOCTYPE html>
+<html>
+    <head>
+         <title>Зарегестрироваться</title>
+         <link rel="stylesheet" href="{% static 'css/Reg.css'%}">
+         <script>
+        function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function callPythonFunctionReg() {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    fetch("{% url 'mainMenu:api_register' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": getCookie("csrftoken"),
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ username, password })
+    })
+    .then(response => response.json().then(data => ({ status: response.status, body: data })))
+    .then(({ status, body }) => {
+        alert(body.message);
+
+        if (status === 201 && body.redirect_url) {
+            window.location.href = body.redirect_url;
+        }
+    })
+    .catch(error => console.error("Ошибка:", error));
+}
+    </script>
+    </head>
+    <body>
+        <div class="content">
+            <h1>Register</h1>
+            <br><input type="text" id="username" placeholder="Имя"> 
+            <br><input type="password" id="password" placeholder="Пароль">
+            <button onclick="callPythonFunctionReg()">Register</button>
+        <a href="{% url 'mainMenu:room_list' %}"><button>Back</button></a>
+        </div>
+        
+    </body>
+</html>   

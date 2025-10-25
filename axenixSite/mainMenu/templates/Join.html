@@ -1,0 +1,81 @@
+{% load static%}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Войти</title>
+    <link rel="stylesheet" href="{% static 'css/join.css'%}">
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== "") {
+                const cookies = document.cookie.split(";");
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + "=")) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        async function loginUser() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+            const messageDiv = document.getElementById("message");
+            messageDiv.textContent = ""; 
+
+            if (!username || !password) {
+                messageDiv.style.color = 'red';
+                messageDiv.textContent = 'Пожалуйста, введите имя и пароль.';
+                return;
+            }
+
+            const url = "{% url 'mainMenu:api_login' %}"; 
+
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCookie("csrftoken"),
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    messageDiv.style.color = 'green';
+                    messageDiv.textContent = data.message + " Перенаправляем...";
+                    
+                    window.location.href = data.redirect_url;
+                } else {
+                    messageDiv.style.color = 'red';
+                    messageDiv.textContent = data.message;
+                }
+            } catch (error) {
+                messageDiv.style.color = 'red';
+                messageDiv.textContent = 'Произошла ошибка сети. Попробуйте снова.';
+                console.error("Login error:", error);
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Войти</h1>
+    <div class="content">
+        <input type="text" id="username" placeholder="Имя пользователя"> 
+        <br><br>
+        <input type="password" id="password" placeholder="Пароль">
+        <br><br>
+        
+        <button onclick="loginUser()">Войти</button>
+        <a href="{% url 'mainMenu:register_page' %}"><button>Register</button></a>
+        <a href="{% url 'mainMenu:room_list' %}"><button>Back</button></a>
+        
+        <div id="message" style="margin-top: 15px; font-weight: bold;"></div>
+    </div>
+</body>
+</html>
