@@ -29,7 +29,6 @@ class ConferenceConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
-        # --- Логика счетчика для автоудаления (при подключении) ---
         self.cache_key = f'room_{self.room_slug}_user_count'
         new_count = cache.get(self.cache_key, 0) + 1
         cache.set(self.cache_key, new_count)
@@ -38,9 +37,7 @@ class ConferenceConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         if not hasattr(self, 'room_slug'): return
 
-        # --- Логика счетчика и автоудаления (при отключении) ---
         user_count = cache.get(self.cache_key, 1) - 1
-        # Устанавливаем новое значение или удаляем ключ, если счетчик <= 0
         if user_count > 0:
             cache.set(self.cache_key, user_count)
         else:
@@ -51,7 +48,6 @@ class ConferenceConsumer(AsyncWebsocketConsumer):
         if user_count <= 0:
             await delete_room_from_db(self.room_slug)
 
-        # Сообщаем всем остальным, что мы ушли
         await self.channel_layer.group_send(
             self.room_group_name,
             {'type': 'user.disconnect', 'peer_id': self.channel_name}
@@ -62,36 +58,28 @@ class ConferenceConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         message_type = data.get('type')
         
-        # Добавляем ID и имя отправителя ко всем сообщениям
         data['sender_channel'] = self.channel_name
         data['username'] = self.user.username
         
         target_peer_id = data.get('target_peer_id')
 
         if target_peer_id:
-            # Сообщение для конкретного получателя (offer, answer, candidate)
             await self.channel_layer.send(
                 target_peer_id,
                 {'type': 'webrtc.signal', 'data': data}
             )
         else:
-            # Широковещательное сообщение для группы (user_ready, chat_message)
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {'type': 'broadcast.message', 'data': data}
             )
 
-    # --- Обработчики групповых сообщений ---
-
     async def broadcast_message(self, event):
-        """Рассылает сообщение всем, КРОМЕ отправителя."""
         if self.channel_name != event['data']['sender_channel']:
             await self.send(text_data=json.dumps(event['data']))
 
     async def webrtc_signal(self, event):
-        """Пересылает сигнальное сообщение конкретному клиенту."""
         await self.send(text_data=json.dumps(event['data']))
         
     async def user_disconnect(self, event):
-        """Сообщает клиентам об отключении пользователя."""
         await self.send(text_data=json.dumps(event))

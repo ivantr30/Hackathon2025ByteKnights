@@ -96,8 +96,10 @@ def main_view(request):
 
 @login_required
 def room_view(request, slug):
-    room = get_object_or_404(Room, slug=slug)
+        room = get_object_or_404(Room, slug=slug)
+        
+        return render(request, 'room.html', {
+            'room': room
+        })
     
-    return render(request, 'room.html', {
-        'room': room
-    })
+
