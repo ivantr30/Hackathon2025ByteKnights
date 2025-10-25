@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-         <title>Зарегестрироваться</title>
+         <title>Зарегистрироваться</title>
          <link rel="stylesheet" href="{% static 'css/Reg.css'%}">
          <script>
         function getCookie(name) {
@@ -46,11 +46,11 @@ function callPythonFunctionReg() {
     </head>
     <body>
         <div class="content">
-            <h1>Register</h1>
+            <h1>Зарегистрироваться</h1>
             <br><input type="text" id="username" placeholder="Имя"> 
             <br><input type="password" id="password" placeholder="Пароль">
-            <button onclick="callPythonFunctionReg()">Register</button>
-        <a href="{% url 'mainMenu:room_list' %}"><button>Back</button></a>
+            <button onclick="callPythonFunctionReg()">Зарегистрироваться</button>
+        <a href="{% url 'mainMenu:room_list' %}"><button>Назад</button></a>
         </div>
         
     </body>

@@ -101,6 +101,6 @@ hr{
 }
 .authenticationButtons button{
     height: 50px;
-    width: 100px;
+    width: fit-content;
     margin-right: 25px;
 }

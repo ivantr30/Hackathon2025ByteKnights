@@ -2,8 +2,19 @@
 
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
+from django.core.cache import cache
+from .models import Room
 
-rooms = {}
+@database_sync_to_async
+def delete_room_from_db(slug):
+    try:
+        room = Room.objects.get(slug=slug)
+        room.delete()
+        print(f"--- [DB] Комната '{slug}' удалена из базы данных, так как опустела. ---")
+        return True
+    except Room.DoesNotExist:
+        return False
 
 class ConferenceConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -15,75 +26,72 @@ class ConferenceConsumer(AsyncWebsocketConsumer):
         self.room_slug = self.scope['url_route']['kwargs']['room_slug']
         self.room_group_name = f'conference_{self.room_slug}'
 
-        if self.room_slug not in rooms:
-            rooms[self.room_slug] = {}
-
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
-        
-        await self.send(text_data=json.dumps({
-            'type': 'welcome',
-            'peer_id': self.channel_name
-        }))
+
+        # --- Логика счетчика для автоудаления (при подключении) ---
+        self.cache_key = f'room_{self.room_slug}_user_count'
+        new_count = cache.get(self.cache_key, 0) + 1
+        cache.set(self.cache_key, new_count)
+        print(f"--- [CONNECT] Пользователь вошел. Участников в комнате: {new_count}")
 
     async def disconnect(self, close_code):
         if not hasattr(self, 'room_slug'): return
-        if self.room_slug in rooms and self.channel_name in rooms[self.room_slug]:
-            del rooms[self.room_slug][self.channel_name]
-            if not rooms[self.room_slug]: del rooms[self.room_slug]
-        await self.channel_layer.group_send(self.room_group_name, {'type': 'user.disconnect', 'peer_id': self.channel_name})
+
+        # --- Логика счетчика и автоудаления (при отключении) ---
+        user_count = cache.get(self.cache_key, 1) - 1
+        # Устанавливаем новое значение или удаляем ключ, если счетчик <= 0
+        if user_count > 0:
+            cache.set(self.cache_key, user_count)
+        else:
+            cache.delete(self.cache_key)
+        
+        print(f"--- [DISCONNECT] Пользователь вышел. Осталось участников: {user_count}")
+        
+        if user_count <= 0:
+            await delete_room_from_db(self.room_slug)
+
+        # Сообщаем всем остальным, что мы ушли
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {'type': 'user.disconnect', 'peer_id': self.channel_name}
+        )
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
         
     async def receive(self, text_data):
         data = json.loads(text_data)
         message_type = data.get('type')
         
-        if message_type == 'chat_message':
+        # Добавляем ID и имя отправителя ко всем сообщениям
+        data['sender_channel'] = self.channel_name
+        data['username'] = self.user.username
+        
+        target_peer_id = data.get('target_peer_id')
+
+        if target_peer_id:
+            # Сообщение для конкретного получателя (offer, answer, candidate)
+            await self.channel_layer.send(
+                target_peer_id,
+                {'type': 'webrtc.signal', 'data': data}
+            )
+        else:
+            # Широковещательное сообщение для группы (user_ready, chat_message)
             await self.channel_layer.group_send(
                 self.room_group_name,
-                {
-                    'type': 'chat.message', 
-                    'message': data['message'],
-                    'username': self.user.username,
-                    'sender_channel': self.channel_name 
-                }
+                {'type': 'broadcast.message', 'data': data}
             )
-            return
 
-        if message_type == 'user_ready':
-            existing_peers = rooms.get(self.room_slug, {})
-            await self.send(text_data=json.dumps({'type': 'get_ready_users', 'peers': existing_peers}))
-            rooms[self.room_slug][self.channel_name] = {'username': self.user.username}
-            await self.channel_layer.group_send(self.room_group_name, {'type': 'new.user.announce', 'peer_id': self.channel_name, 'username': self.user.username})
-            return
+    # --- Обработчики групповых сообщений ---
 
-        target_peer_id = data.get('target_peer_id')
-        if target_peer_id:
-            data['peer_id'] = self.channel_name
-            await self.channel_layer.send(target_peer_id, {'type': 'webrtc.signal', 'data': data})
-
-
-    async def chat_message(self, event):
-        """
-        Рассылает сообщение чата всем, КРОМЕ отправителя.
-        """
-        
-        if self.channel_name == event['sender_channel']:
-            return
-
-        await self.send(text_data=json.dumps({
-            'type': 'chat_message',
-            'message': event['message'],
-            'username': event['username'],
-            'peer_id': event['sender_channel'] 
-        }))
-
-    async def new_user_announce(self, event):
-        if self.channel_name != event['peer_id']:
-            await self.send(text_data=json.dumps(event))
-
-    async def user_disconnect(self, event):
-        await self.send(text_data=json.dumps(event))
+    async def broadcast_message(self, event):
+        """Рассылает сообщение всем, КРОМЕ отправителя."""
+        if self.channel_name != event['data']['sender_channel']:
+            await self.send(text_data=json.dumps(event['data']))
 
     async def webrtc_signal(self, event):
+        """Пересылает сигнальное сообщение конкретному клиенту."""
         await self.send(text_data=json.dumps(event['data']))
+        
+    async def user_disconnect(self, event):
+        """Сообщает клиентам об отключении пользователя."""
+        await self.send(text_data=json.dumps(event))

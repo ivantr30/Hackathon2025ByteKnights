@@ -76,10 +76,6 @@ def reg_page(request):
 
 @login_required 
 def main_view(request):
-    """
-    Главная страница: отображает список комнат и форму создания новой.
-    Это единственная функция, которая нужна для главной страницы.
-    """
     rooms = Room.objects.all()
     form = RoomCreationForm()
     
@@ -100,9 +96,6 @@ def main_view(request):
 
 @login_required
 def room_view(request, slug):
-    """
-    Отображает конкретную комнату.
-    """
     room = get_object_or_404(Room, slug=slug)
     
     return render(request, 'room.html', {

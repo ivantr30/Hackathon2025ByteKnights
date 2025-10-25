@@ -4,34 +4,16 @@
 <head>
   <title>Комната {{ room.name }}</title>
   <link rel="stylesheet" href="{% static 'css/room.css' %}">
-  
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; margin: 0; }
     main { display: flex; flex-direction: column; height: 100vh; }
     h1 { padding: 1rem; margin: 0; color: #1c1e21; flex-shrink: 0; background-color: #fff; }
     .content-wrapper { display: flex; flex-grow: 1; overflow: hidden; padding: 1rem; gap: 1rem; }
-
-    #video-grid {
-      flex-grow: 1;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 1rem;
-      align-content: flex-start;
-      overflow-y: auto;
-    }
+    #video-grid { flex-grow: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; align-content: flex-start; overflow-y: auto; }
     .video-container { position: relative; background: #000; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .video-container video { width: 100%; height: 100%; object-fit: cover; }
-    .video-container .username-label { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; }
-
-    #chat-wrapper {
-      width: 320px;
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      background-color: #fff;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+    .video-container .username-label { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.6); color: white; padding: 4px 8px; border-radius: 4px; }
+    #chat-wrapper { width: 320px; flex-shrink: 0; display: flex; flex-direction: column; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     #chat-log { flex-grow: 1; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; }
     .chat-message { max-width: 85%; padding: 8px 12px; border-radius: 18px; margin-bottom: 10px; line-height: 1.4; word-wrap: break-word; }
     .chat-message.self { background-color: #0084ff; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
@@ -40,27 +22,8 @@
     #chat-form { display: flex; padding: 10px; border-top: 1px solid #eee; }
     #chat-input { flex-grow: 1; border: 1px solid #ccc; border-radius: 20px; padding: 10px; margin-right: 8px; }
     #chat-submit { border: none; background-color: #0084ff; color: white; font-weight: bold; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; }
-    
-    #entry-overlay {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background-color: rgba(0, 0, 0, 0.75);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-      color: white;
-      text-align: center;
-    }
-    #entry-button {
-      font-size: 1.2em;
-      cursor: pointer;
-      border: 2px solid white;
-      background-color: transparent;
-      color: white;
-      border-radius: 8px;
-    }
+    #entry-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.75); display: flex; justify-content: center; align-items: center; z-index: 9999; color: white; text-align: center; }
+    #entry-button { padding: 15px 30px; font-size: 1.2em; cursor: pointer; border: 2px solid white; background-color: transparent; color: white; border-radius: 8px; }
   </style>
 </head>
 <body>
@@ -97,7 +60,7 @@
 <script>
 const roomSlug = JSON.parse(document.getElementById('room-slug-data').textContent);
 const myUsername = JSON.parse(document.getElementById('user-username-data').textContent);
-let myPeerId;
+let myPeerId; 
 
 const videoGrid = document.getElementById("video-grid");
 const myVideo = document.getElementById("my-video");
@@ -113,8 +76,8 @@ const entryButton = document.getElementById('entry-button');
 let socket;
 
 entryButton.addEventListener('click', () => {
-  overlay.style.display = 'none'; 
-  initializeConnection(); 
+  overlay.style.display = 'none';
+  initializeConnection();
 }, { once: true });
 
 function initializeConnection() {
@@ -126,13 +89,11 @@ function initializeConnection() {
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
       .catch(() => navigator.mediaDevices.getUserMedia({ video: false, audio: true }))
       .then(stream => {
-        console.log("Доступ к медиа получен.");
         myStream = stream;
         myVideo.srcObject = stream;
         send({ type: "user_ready" });
       })
       .catch(() => {
-        console.error("Не удалось получить доступ к медиа.");
         myStream = null;
         alert("Нет доступа к камере/микрофону. Режим только для просмотра.");
         send({ type: "user_ready" });
@@ -143,53 +104,19 @@ function initializeConnection() {
     const data = JSON.parse(e.data);
     console.log("Получено сообщение:", data);
     
-     
     switch (data.type) {
-        case 'welcome':
-            myPeerId = data.peer_id;
-            console.log(`Мой ID установлен: ${myPeerId}`);
-            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-              .catch(() => navigator.mediaDevices.getUserMedia({ video: false, audio: true }))
-              .then(stream => {
-                console.log("Доступ к медиа получен.");
-                myStream = stream;
-                myVideo.srcObject = stream;
-                send({ type: "user_ready" });
-              })
-              .catch(() => {
-                console.error("Не удалось получить доступ к медиа.");
-                myStream = null;
-                alert("Нет доступа к камере/микрофону. Режим только для просмотра.");
-                send({ type: "user_ready" });
-              });
-            break;
-
         case 'chat_message':
           displayChatMessage(data.username, data.message, false);
           break;
-              
-        case 'get_ready_users':
-          for (const peerId in data.peers) {
-            if (peerId !== myPeerId) { 
-              createPeerConnection(peerId, data.peers[peerId].username, true);
-            }
-          }
+        case 'user_ready':
+          createPeerConnection(data.sender_channel, data.username, true);
           break;
-
-        case 'new_user_announce':
-          if (data.peer_id !== myPeerId) {
-            createPeerConnection(data.peer_id, data.username, true);
-          }
-          break;
-        
-        case 'offer': handleOffer(data.peer_id, data.username, data.offer); break;
-        case 'answer': handleAnswer(data.peer_id, data.answer); break;
-        case 'candidate': handleCandidate(data.peer_id, data.candidate); break;
+        case 'offer': handleOffer(data.sender_channel, data.username, data.offer); break;
+        case 'answer': handleAnswer(data.sender_channel, data.answer); break;
+        case 'candidate': handleCandidate(data.sender_channel, data.candidate); break;
         case 'user_disconnect': removePeer(data.peer_id); break;
     }
   };
-
-  socket.onclose = () => console.log('Соединение с WebSocket закрыто');
 }
 
 function send(msg) { 
@@ -202,9 +129,8 @@ chatForm.addEventListener('submit', e => {
   e.preventDefault();
   const message = chatInput.value.trim();
   if (message) {
-    const chatData = { type: 'chat_message', message: message };
-    send(chatData);
-    displayChatMessage(myUsername, message, true);
+    send({ type: 'chat_message', message: message });
+    displayChatMessage(myUsername, message, true); 
     chatInput.value = '';
   }
 });
@@ -225,6 +151,7 @@ function displayChatMessage(username, message, isSelf) {
     chatLog.scrollTop = chatLog.scrollHeight;
 }
 
+// --- WebRTC ---
 function createPeerConnection(peerId, username, initiator) {
   if (peerId in peers) return;
   console.log(`Создание PeerConnection для ${username} (${peerId}). Инициатор: ${initiator}`);
@@ -240,7 +167,6 @@ function createPeerConnection(peerId, username, initiator) {
   }
 
   pc.ontrack = (event) => {
-    console.log(`Получен трек от ${username} (${peerId})`);
     let container = document.getElementById(`container-${peerId}`);
     if (!container) {
       container = document.createElement("div");
@@ -249,7 +175,7 @@ function createPeerConnection(peerId, username, initiator) {
       const video = document.createElement("video");
       video.autoplay = true;
       video.playsinline = true;
-      video.muted = false;
+      video.muted = false; 
       const label = document.createElement("div");
       label.className = 'username-label';
       label.innerText = username;
@@ -267,7 +193,7 @@ function createPeerConnection(peerId, username, initiator) {
   if (initiator) {
     pc.createOffer()
       .then(offer => pc.setLocalDescription(offer))
-      .then(() => send({ type: "offer", target_peer_id: peerId, offer: pc.localDescription, username: myUsername }));
+      .then(() => send({ type: "offer", target_peer_id: peerId, offer: pc.localDescription }));
   }
 }
 
