@@ -9,6 +9,7 @@ from datetime import datetime
 from django.conf import settings
 import os
 from django.core.files.base import ContentFile
+from pytils.translit import slugify
 
 @database_sync_to_async
 def delete_room_from_db(slug):
@@ -27,14 +28,14 @@ def delete_room_from_db(slug):
 
         if messages:
             log_content = []
-            log_content.append(f"История чата для комнаты: {room_to_archive.name} ({slug})")
-            log_content.append(f"Комната создана: {room_to_archive.created_at.strftime('%Y-%m-%d %H:%M')}")
-            log_content.append(f"История сохранена: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+            log_content.append(slugify(f"История чата для комнаты: {room_to_archive.name} ({slug})"))
+            log_content.append(slugify(f"Комната создана: {room_to_archive.created_at.strftime('%Y-%m-%d %H:%M')}"))
+            log_content.append(slugify(f"История сохранена: {datetime.now().strftime('%Y-%m-%d %H:%M')}"))
             log_content.append("=" * 40 + "\n")
 
             for msg in messages:
                 msg_time = msg.timestamp.strftime('%H:%M:%S')
-                log_content.append(f"[{msg_time}] {msg.username_at_time}: {msg.text}")
+                log_content.append(slugify(f"[{msg_time}] {msg.username_at_time}: {msg.text}"))
             
             full_log_text = "\n".join(log_content)
 
