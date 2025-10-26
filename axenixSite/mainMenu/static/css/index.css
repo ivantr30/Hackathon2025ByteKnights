@@ -93,7 +93,7 @@ hr{
     justify-content: center; 
     align-items: center;   
     gap: 20px;
-    padding-top: 1.35%;
+    padding-top: 25px;
 }
 .CreateRoom{
     width: 100%;
@@ -113,4 +113,9 @@ hr{
     height: 50px;
     width: fit-content;
     margin-right: 25px;
+}
+@media screen and (max-width:1200px) {
+    .rooms{
+        flex-direction: column;
+    }
 }
