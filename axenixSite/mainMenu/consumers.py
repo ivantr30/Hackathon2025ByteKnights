@@ -4,42 +4,57 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.core.cache import cache
-from .models import ChatMessage, Room
+from .models import ArchivedRoom, ChatMessage, Room
 from datetime import datetime
 from django.conf import settings
 import os
+from django.core.files.base import ContentFile
 
 @database_sync_to_async
 def delete_room_from_db(slug):
     try:
-        room_to_delete = Room.objects.prefetch_related('messages').get(slug=slug)
-        
-        messages = room_to_delete.messages.all()
+        room_to_archive = Room.objects.prefetch_related('messages').get(slug=slug)
+        messages = room_to_archive.messages.all()
+
+        # Создаем запись в архиве еще до создания файла
+        archived_room = ArchivedRoom.objects.create(
+            name=room_to_archive.name,
+            slug=room_to_archive.slug,
+            creator_username=room_to_archive.creator.username if room_to_archive.creator else "Неизвестен",
+            created_at=room_to_archive.created_at
+        )
+        print(f"--- [AR] Создана архивная запись для комнаты '{slug}' ---")
 
         if messages:
-            timestamp_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            log_filename = f"{slug}_{timestamp_str}.txt"
-            log_filepath = os.path.join(settings.CHAT_LOGS_DIR, log_filename)
+            # 1. Формируем содержимое лога в виде одной большой строки
+            log_content = []
+            log_content.append(f"История чата для комнаты: {room_to_archive.name} ({slug})")
+            log_content.append(f"Комната создана: {room_to_archive.created_at.strftime('%Y-%m-%d %H:%M')}")
+            log_content.append(f"История сохранена: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+            log_content.append("=" * 40 + "\n")
+
+            for msg in messages:
+                msg_time = msg.timestamp.strftime('%H:%M:%S')
+                log_content.append(f"[{msg_time}] {msg.username_at_time}: {msg.text}")
             
-            print(f"--- [LOG] Сохраняю историю чата комнаты '{slug}' в файл: {log_filepath} ---")
+            full_log_text = "\n".join(log_content)
 
-            try:
-                with open(log_filepath, 'w', encoding='utf-8') as log_file:
-                    log_file.write(f"История чата для комнаты: {room_to_delete.name} ({slug})\n")
-                    log_file.write(f"Комната создана: {room_to_delete.created_at.strftime('%Y-%m-%d %H:%M')}\n")
-                    log_file.write(f"История сохранена: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n")
-                    log_file.write("=" * 40 + "\n\n")
-                    
-                    for msg in messages:
-                        msg_time = msg.timestamp.strftime('%H:%M:%S')
-                        log_file.write(f"[{msg_time}] {msg.username_at_time}: {msg.text}\n")
-                
-                print(f"--- [LOG] История чата успешно сохранена. ---")
-            except IOError as e:
-                print(f"!!! [ERROR] Не удалось записать лог чата: {e} !!!")
+            # 2. Формируем имя файла
+            timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_filename = f"{slug}_{timestamp_str}.txt"
 
-        room_to_delete.delete()
-        print(f"--- [DB] Комната '{slug}' и ее сообщения удалены из базы данных. ---")
+            # 3. Сохраняем строку в FileField
+            # ContentFile превращает обычную строку в объект, который Django может сохранить как файл.
+            archived_room.chat_log.save(log_filename, ContentFile(full_log_text.encode('utf-8')))
+            
+            print(f"--- [LOG] История чата ({len(messages)} сообщений) сохранена в файл {log_filename}. ---")
+        else:
+            print("--- [LOG] В комнате не было сообщений для архивации. ---")
+
+        # 4. Удаляем 'живую' комнату.
+        # Так как для ChatMessage стоит on_delete=CASCADE, все сообщения удалятся из БД вместе с комнатой.
+        room_to_archive.delete()
+        print(f"--- [DB] 'Живая' комната '{slug}' удалена. ---")
         
         return True
         

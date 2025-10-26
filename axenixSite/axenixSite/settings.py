@@ -141,3 +141,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CHAT_LOGS_DIR = os.path.join(BASE_DIR, 'chat_logs')
 
 os.makedirs(CHAT_LOGS_DIR, exist_ok=True)
+
+MEDIA_URL = '/media/'
+
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

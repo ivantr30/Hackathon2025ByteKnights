@@ -24,7 +24,6 @@ class Room(models.Model):
         ordering = ['-created_at']
 
 class ChatMessage(models.Model):
-    """Модель для хранения одного сообщения в чате."""
     room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='messages', verbose_name="Комната")
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, verbose_name="Автор")
     username_at_time = models.CharField(max_length=150, verbose_name="Имя пользователя в момент отправки")
@@ -38,3 +37,20 @@ class ChatMessage(models.Model):
         verbose_name = "Сообщение чата"
         verbose_name_plural = "Сообщения чата"
         ordering = ['timestamp']
+class ArchivedRoom(models.Model):
+    """Модель для хранения информации и лога чата архивированной комнаты."""
+    name = models.CharField(max_length=100)
+    slug = models.CharField(max_length=100)
+    creator_username = models.CharField(max_length=150, null=True, blank=True)
+    created_at = models.DateTimeField()
+    archived_at = models.DateTimeField(auto_now_add=True)
+    
+    chat_log = models.FileField(upload_to='chat_logs/', null=True, blank=True, verbose_name="Лог чата")
+
+    def __str__(self):
+        return f"{self.name} (архив от {self.archived_at.strftime('%Y-%m-%d %H:%M')})"
+        
+    class Meta:
+        verbose_name = "Архивная комната"
+        verbose_name_plural = "Архивные комнаты"
+        ordering = ['-archived_at']
