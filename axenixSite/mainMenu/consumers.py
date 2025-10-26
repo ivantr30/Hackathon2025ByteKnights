@@ -86,22 +86,23 @@ class ConferenceConsumer(AsyncWebsocketConsumer):
         print(f"--- [CONNECT] Пользователь вошел. Участников в комнате: {new_count}")
 
     async def disconnect(self, close_code):
-        if not hasattr(self, 'room_slug'): return
-
-        user_count = cache.get(self.cache_key, 1) - 1
-        if user_count > 0:
-            cache.set(self.cache_key, user_count)
-        else:
-            cache.delete(self.cache_key)
+        # В начало добавляем логику счетчика и вызов архивации
+        if hasattr(self, 'cache_key'):
+            user_count = cache.get(self.cache_key, 1) - 1
+            if user_count > 0:
+                cache.set(self.cache_key, user_count)
+            else:
+                cache.delete(self.cache_key)
+            
+            print(f"--- [DISCONNECT] Осталось участников: {user_count}")
+            
+            if user_count <= 0:
+                await delete_room_from_db(self.room_slug)
         
-        print(f"--- [DISCONNECT] Пользователь вышел. Осталось участников: {user_count}")
-        
-        if user_count <= 0:
-            await delete_room_from_db(self.room_slug)
-
+        # Этот код остается без изменений и должен работать
         await self.channel_layer.group_send(
             self.room_group_name,
-            {'type': 'user.disconnect', 'peer_id': self.channel_name}
+            {'type': 'user_disconnect', 'peer_id': self.channel_name}
         )
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
         
