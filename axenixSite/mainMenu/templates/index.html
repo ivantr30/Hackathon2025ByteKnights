@@ -40,8 +40,8 @@
     const errorMessage = document.getElementById('join-error-message');
 
     joinRoomForm.addEventListener('submit', async function(e) {
-        e.preventDefault(); // Предотвращаем стандартную отправку формы
-        errorMessage.textContent = ''; // Очищаем старые ошибки
+        e.preventDefault(); 
+        errorMessage.textContent = ''; 
 
         const roomName = roomNameInput.value.trim();
         if (!roomName) {
@@ -50,12 +50,10 @@
         }
 
         try {
-            // Отправляем асинхронный запрос на наш новый API для проверки комнаты
             const response = await fetch("{% url 'mainMenu:check_room' %}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    // CSRF-токен обязателен для POST-запросов в Django
                     'X-CSRFToken': getCookie('csrftoken') 
                 },
                 body: JSON.stringify({ room_name: roomName })
@@ -64,10 +62,8 @@
             const data = await response.json();
 
             if (data.exists) {
-                // Если комната существует, сервер вернет ее slug. Перенаправляем пользователя.
                 window.location.href = `/room/${data.slug}/`;
             } else {
-                // Если комната не найдена
                 errorMessage.textContent = 'Комната с таким названием не найдена.';
             }
 
@@ -77,7 +73,6 @@
         }
     });
 
-    // Вспомогательная функция для получения CSRF-токена из cookies
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {

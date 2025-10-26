@@ -17,7 +17,6 @@ def delete_room_from_db(slug):
         room_to_archive = Room.objects.prefetch_related('messages').get(slug=slug)
         messages = room_to_archive.messages.all()
 
-        # Создаем запись в архиве еще до создания файла
         archived_room = ArchivedRoom.objects.create(
             name=room_to_archive.name,
             slug=room_to_archive.slug,
@@ -87,7 +86,6 @@ class ConferenceConsumer(AsyncWebsocketConsumer):
         print(f"--- [CONNECT] Пользователь вошел. Участников в комнате: {new_count}")
 
     async def disconnect(self, close_code):
-        # В начало добавляем логику счетчика и вызов архивации
         if hasattr(self, 'cache_key'):
             user_count = cache.get(self.cache_key, 1) - 1
             if user_count > 0:
@@ -100,7 +98,6 @@ class ConferenceConsumer(AsyncWebsocketConsumer):
             if user_count <= 0:
                 await delete_room_from_db(self.room_slug)
         
-        # Этот код остается без изменений и должен работать
         await self.channel_layer.group_send(
             self.room_group_name,
             {'type': 'user_disconnect', 'peer_id': self.channel_name}
