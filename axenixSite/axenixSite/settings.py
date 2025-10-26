@@ -129,7 +129,6 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
-# Эта настройка улучшает кеширование в продакшене. В разработке не так важна, но полезна.
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 SECORE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -138,3 +137,7 @@ SECORE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CHAT_LOGS_DIR = os.path.join(BASE_DIR, 'chat_logs')
+
+os.makedirs(CHAT_LOGS_DIR, exist_ok=True)
