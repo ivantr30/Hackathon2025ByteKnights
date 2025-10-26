@@ -16,19 +16,12 @@
 
     <div class="rooms">
         <div class="JoinRooms">
-            <h2>Доступные комнаты</h2>
-            {% if rooms %}
-                <ul>
-                {% for room in rooms %}
-                    <li>
-                        <a href="{% url 'mainMenu:room_detail' room.slug %}">{{ room.name }}</a> 
-                        (создана {{ room.created_at|date:"d.m.Y" }} пользователем {{ room.creator.username }})
-                    </li>
-                {% endfor %}
-                </ul>
-            {% else %}
-                <p>Пока нет ни одной комнаты. Создайте первую!</p>
-            {% endif %}
+            <h2>Присоединиться к комнате</h2>
+            <form id="join-room-form">
+                <input type="text" id="room-name-input" placeholder="Введите название или ID комнаты" required>
+                <button type="submit">Присоединиться</button>
+            </form>
+            <p id="join-error-message" style="color: red;"></p>
         </div>
         <div class="CreateRoom">
             <h2>Создать новую комнату</h2>
@@ -40,6 +33,65 @@
         </div>
     </div>
     
+<script>
+    // Находим элементы новой формы
+    const joinRoomForm = document.getElementById('join-room-form');
+    const roomNameInput = document.getElementById('room-name-input');
+    const errorMessage = document.getElementById('join-error-message');
 
+    joinRoomForm.addEventListener('submit', async function(e) {
+        e.preventDefault(); // Предотвращаем стандартную отправку формы
+        errorMessage.textContent = ''; // Очищаем старые ошибки
+
+        const roomName = roomNameInput.value.trim();
+        if (!roomName) {
+            errorMessage.textContent = 'Пожалуйста, введите название комнаты.';
+            return;
+        }
+
+        try {
+            // Отправляем асинхронный запрос на наш новый API для проверки комнаты
+            const response = await fetch("{% url 'mainMenu:check_room' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // CSRF-токен обязателен для POST-запросов в Django
+                    'X-CSRFToken': getCookie('csrftoken') 
+                },
+                body: JSON.stringify({ room_name: roomName })
+            });
+
+            const data = await response.json();
+
+            if (data.exists) {
+                // Если комната существует, сервер вернет ее slug. Перенаправляем пользователя.
+                window.location.href = `/room/${data.slug}/`;
+            } else {
+                // Если комната не найдена
+                errorMessage.textContent = 'Комната с таким названием не найдена.';
+            }
+
+        } catch (error) {
+            console.error('Ошибка при проверке комнаты:', error);
+            errorMessage.textContent = 'Произошла ошибка. Попробуйте снова.';
+        }
+    });
+
+    // Вспомогательная функция для получения CSRF-токена из cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
 </body>
 </html>

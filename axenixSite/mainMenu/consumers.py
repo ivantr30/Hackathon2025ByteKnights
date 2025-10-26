@@ -26,7 +26,6 @@ def delete_room_from_db(slug):
         print(f"--- [AR] Создана архивная запись для комнаты '{slug}' ---")
 
         if messages:
-            # 1. Формируем содержимое лога в виде одной большой строки
             log_content = []
             log_content.append(f"История чата для комнаты: {room_to_archive.name} ({slug})")
             log_content.append(f"Комната создана: {room_to_archive.created_at.strftime('%Y-%m-%d %H:%M')}")
@@ -39,20 +38,15 @@ def delete_room_from_db(slug):
             
             full_log_text = "\n".join(log_content)
 
-            # 2. Формируем имя файла
             timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
             log_filename = f"{slug}_{timestamp_str}.txt"
 
-            # 3. Сохраняем строку в FileField
-            # ContentFile превращает обычную строку в объект, который Django может сохранить как файл.
             archived_room.chat_log.save(log_filename, ContentFile(full_log_text.encode('utf-8')))
             
             print(f"--- [LOG] История чата ({len(messages)} сообщений) сохранена в файл {log_filename}. ---")
         else:
             print("--- [LOG] В комнате не было сообщений для архивации. ---")
 
-        # 4. Удаляем 'живую' комнату.
-        # Так как для ChatMessage стоит on_delete=CASCADE, все сообщения удалятся из БД вместе с комнатой.
         room_to_archive.delete()
         print(f"--- [DB] 'Живая' комната '{slug}' удалена. ---")
         

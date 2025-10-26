@@ -10,6 +10,7 @@ from django.contrib.auth.decorators import login_required
 from .models import Room  
 from .forms import RoomCreationForm
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 
 
 @csrf_exempt
@@ -74,11 +75,9 @@ def reg_page(request):
 
 
 
-@login_required 
+@login_required
 def main_view(request):
-    rooms = Room.objects.all()
     form = RoomCreationForm()
-    
     if request.method == 'POST':
         form = RoomCreationForm(request.POST)
         if form.is_valid():
@@ -87,12 +86,30 @@ def main_view(request):
             new_room.save()
             return redirect('mainMenu:room_detail', slug=new_room.slug)
     
-    context = {
-        'rooms': rooms,
-        'form': form
-    }
-    return render(request, 'index.html', context)
+    return render(request, 'index.html', {'form': form})
 
+@login_required
+@require_POST
+def check_room_view(request):
+    try:
+        data = json.loads(request.body)
+        room_name = data.get('room_name')
+
+        if not room_name:
+            return JsonResponse({'exists': False, 'error': 'Название комнаты не предоставлено.'}, status=400)
+
+        room = Room.objects.filter(name__iexact=room_name).first()
+
+        if room:
+            return JsonResponse({'exists': True, 'slug': room.slug})
+        else:
+            # Если не найдена
+            return JsonResponse({'exists': False})
+
+    except json.JSONDecodeError:
+        return JsonResponse({'exists': False, 'error': 'Некорректный запрос.'}, status=400)
+    except Exception as e:
+        return JsonResponse({'exists': False, 'error': str(e)}, status=500)
 
 @login_required
 def room_view(request, slug):

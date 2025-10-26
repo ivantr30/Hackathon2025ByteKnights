@@ -13,4 +13,5 @@ urlpatterns = [
     path("api/register/", views.register_user, name="api_register"),
     
     path("room/<slug:slug>/", views.room_view, name="room_detail"),
+    path("api/check_room/", views.check_room_view, name="check_room"),
 ]
